@@ -15,7 +15,7 @@ options:
             verbose, prints out additional debugging statements during runtime
 """
 
-VERBOSE = True
+VERBOSE = False
 
 def process_vdj_fasta(fastaFilePath, keptTranscriptsFile, outputPath, sampleNumber):
     transcriptsFile = open(keptTranscriptsFile, 'r')
