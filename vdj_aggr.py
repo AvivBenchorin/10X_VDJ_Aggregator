@@ -92,7 +92,7 @@ def main():
     inputReferenceFiles = []
     outputFastaFile = 'contigs.fasta'
     outputAnnotationFile = 'contigs_annotation.csv'
-    
+
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hi:f:a:v", ["help"])
         print(opts, args)
@@ -125,7 +125,7 @@ def main():
         else:
             print(usage_prompt)
             return
-    if len(opts) != 3:
+    if '-i' not in opts:
         print(usage_prompt)
         print('ERROR: Not all required options were added')
     process_vdj(inputReferenceFiles, inputFastaFiles, inputAnnotationFiles, outputFastaFile, outputAnnotationFile)
