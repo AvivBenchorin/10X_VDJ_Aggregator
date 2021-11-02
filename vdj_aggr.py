@@ -23,7 +23,7 @@ def process_vdj_fasta(fastaFilePath, keptTranscriptsFile, outFile, sampleNumber)
     transcriptList = []
     
     for line in transcriptsFile:
-        transcriptList.append('>' + line)
+        transcriptList.append('>' + line.rstrip())
     if VERBOSE:
         print('process_vdj_fasta:', transcriptList)
     transcriptsFile.close()
@@ -53,7 +53,7 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
     transcriptList = []
     
     for line in transcriptsFile:
-        transcriptList.append(line)
+        transcriptList.append(line.rstrip())
     if VERBOSE:
         print('process_vdj_annotation:', transcriptList)
     transcriptsFile.close()
