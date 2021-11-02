@@ -14,7 +14,6 @@ options:
     -v
             verbose, prints out additional debugging statements during runtime
 """
-
 VERBOSE = False
 
 def process_vdj_fasta(fastaFilePath, keptTranscriptsFile, outFile, sampleNumber):
@@ -124,8 +123,9 @@ def main():
             outputFastaFile = arg
         elif opt == '-a':
             outputAnnotationFile = arg
-        elif opt == 'v':
-            VERBOSE = True
+        elif opt == '-v':
+           global VERBOSE
+           VERBOSE = True
         else:
             print(usage_prompt)
             return
