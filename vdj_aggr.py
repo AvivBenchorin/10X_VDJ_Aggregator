@@ -112,7 +112,7 @@ def main():
             inputConfigPath = arg
             inputConfigFile = open(inputConfigPath)
             for line in inputConfigFile:
-                splitLine = line.split('->')
+                splitLine = line.rstrip().split('->')
                 referencePath = splitLine[0]
                 inputReferenceFiles.append(referencePath)
                 paths = splitLine[1].split(',')
