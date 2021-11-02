@@ -17,10 +17,9 @@ options:
 
 VERBOSE = False
 
-def process_vdj_fasta(fastaFilePath, keptTranscriptsFile, outputPath, sampleNumber):
+def process_vdj_fasta(fastaFilePath, keptTranscriptsFile, outFile, sampleNumber):
     transcriptsFile = open(keptTranscriptsFile, 'r')
     fastaFile = open(fastaFilePath, 'r')
-    outFile = open(outputPath, 'a')
 
     transcriptList = []
     
@@ -39,25 +38,23 @@ def process_vdj_fasta(fastaFilePath, keptTranscriptsFile, outputPath, sampleNumb
             if VERBOSE:
                 print('process_vdj_fasta:', transcript)
             if transcript in transcriptList:
-                reconstructedLine = splitLine[0] + '-' + str(sampleNumber) + contig_number
+                reconstructedLine = splitLine[0] + '-' + str(sampleNumber) + contig_number + '\n'
                 outFile.write(reconstructedLine)
                 keep_transcript = True
         elif keep_transcript:
             outFile.write(line)
             keep_transcript = False
     
-    outFile.close()
     fastaFile.close()
 
-def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outputPath, sampleNumber):
+def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sampleNumber):
     transcriptsFile = open(keptTranscriptsFile, 'r')
     annotationFile = open(annotationFilePath, 'r')
-    outFile = open(outputPath, 'a')
 
     transcriptList = []
     
     for line in transcriptsFile:
-        transcriptList.append('>' + line)
+        transcriptList.append(line)
     if VERBOSE:
         print('process_vdj_annotation:', transcriptList)
     transcriptsFile.close()
@@ -66,24 +63,30 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outputPath, 
     for line in annotationFile:
         if first_row:
             first_row = False
-            pass
+            if sampleNumber == 1:
+                outFile.write(line)
         else:
             splitLine = line.rstrip().split(',', maxsplit=1)
             transcript = splitLine[0].split('-')[0]
             remainder = splitLine[1]
             if VERBOSE:
                 print('process_vdj_annotation:', transcript)
-            reconstructedLine = transcript + '-' + str(sampleNumber) + remainder
-            outFile.write(reconstructedLine)
+            if transcript in transcriptList:
+                reconstructedLine = transcript + '-' + str(sampleNumber) + ',' + remainder + '\n'
+                outFile.write(reconstructedLine)
 
-    outFile.close()
     annotationFile.close()
 
 def process_vdj(inRefPaths, inFastaPaths, inAnnoPaths, outFastaPath, outputAnnotationPath):
+    outFastaFile = open(outFastaPath, 'w')
+    outAnnotationFile = open(outputAnnotationPath, 'w')
+
     numSamples = len(inRefPaths)
     for i in range(numSamples):
-        process_vdj_fasta(inFastaPaths[i], inRefPaths[i], outFastaPath, i)
-        process_vdj_annotation(inAnnoPaths[i], inRefPaths[i], outputAnnotationPath, i)
+        process_vdj_fasta(inFastaPaths[i], inRefPaths[i], outFastaFile, i+1)
+        process_vdj_annotation(inAnnoPaths[i], inRefPaths[i], outAnnotationFile, i+1)
+    outFastaFile.close()
+    outAnnotationFile.close()
 
 def main():
     
@@ -92,10 +95,10 @@ def main():
     inputReferenceFiles = []
     outputFastaFile = 'contigs.fasta'
     outputAnnotationFile = 'contigs_annotation.csv'
+    inputsGiven = False
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hi:f:a:v", ["help"])
-        print(opts, args)
     except getopt.GetoptError as err:
         print(usage_prompt)
         print(str(err))
@@ -105,6 +108,7 @@ def main():
             print(usage_prompt)
             return
         elif opt == '-i':
+            inputsGiven = True
             inputConfigPath = arg
             inputConfigFile = open(inputConfigPath)
             for line in inputConfigFile:
@@ -125,9 +129,10 @@ def main():
         else:
             print(usage_prompt)
             return
-    if '-i' not in opts:
+    if inputsGiven == False:
         print(usage_prompt)
         print('ERROR: Not all required options were added')
+        return
     process_vdj(inputReferenceFiles, inputFastaFiles, inputAnnotationFiles, outputFastaFile, outputAnnotationFile)
 
 if __name__ == "__main__":
