@@ -106,7 +106,7 @@ def main():
             return
         elif opt == '-i':
             inputConfigPath = arg
-            inputConfigFile = inputConfigPath.open()
+            inputConfigFile = open(inputConfigPath)
             for line in inputConfigFile:
                 splitLine = line.split('->')
                 referencePath = splitLine[0]
