@@ -46,7 +46,7 @@ def process_vdj_fasta(fastaFilePath, keptTranscriptsFile, outFile, sampleLabel):
     
     fastaFile.close()
 
-def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sampleLabel, is_first):
+def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sampleLabel, is_first_sample):
     transcriptsFile = open(keptTranscriptsFile, 'r')
     annotationFile = open(annotationFilePath, 'r')
 
@@ -57,11 +57,12 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
     if VERBOSE:
         print('process_vdj_annotation:', transcriptList)
     transcriptsFile.close()
-    first_row = is_first
+    first_row = True
     for line in annotationFile:
         if first_row:
+            if is_first_sample:
                 outFile.write(line)
-                first_row = False
+            first_row = False
         else:
             splitLine = line.rstrip().split(',', 4)
             
