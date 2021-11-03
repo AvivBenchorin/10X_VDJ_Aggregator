@@ -65,13 +65,27 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
             if sampleNumber == 1:
                 outFile.write(line)
         else:
-            splitLine = line.rstrip().split(',', maxsplit=1)
+            splitLine = line.rstrip().split(',', maxsplit=4)
+            
             transcript = splitLine[0].split('-')[0]
-            remainder = splitLine[1]
+            
+            is_cell = splitLine[1]
+            
+            contig_id = splitLine[2]
+            contig_id_split = re.split(r'-\d', contig_id)
+            contig_id_transcript = contig_id_split[0]
+            contig_id_contig_num = contig_id_split[1]
+            
+            high_confidence = splitLine[3]
+            
+            remainder = splitLine[4]
+
             if VERBOSE:
                 print('process_vdj_annotation:', transcript)
             if transcript in transcriptList:
-                reconstructedLine = transcript + '-' + str(sampleNumber) + ',' + remainder + '\n'
+                reconstructedLine = transcript + '-' + str(sampleNumber) + ',' + is_cell + ',' + contig_id_transcript + '-' + str(sampleNumber) + ',' + high_confidence + ',' + remainder + '\n'
+                if VERBOSE:
+                    print('process_vdj_annotation:', reconstructedLine)
                 outFile.write(reconstructedLine)
 
     annotationFile.close()
