@@ -71,7 +71,6 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
             
             contig_id = splitLine[2]
             contig_id_split = re.split(r'-\w+_contig_', contig_id)
-            print(contig_id_split)
             contig_id_transcript = contig_id_split[0]
             contig_id_contig_num = contig_id_split[1]
 
