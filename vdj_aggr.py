@@ -16,7 +16,7 @@ options:
 """
 VERBOSE = False
 
-def process_vdj_fasta(fastaFilePath, keptTranscriptsFile, outFile, sampleNumber):
+def process_vdj_fasta(fastaFilePath, keptTranscriptsFile, outFile, sampleLabel):
     transcriptsFile = open(keptTranscriptsFile, 'r')
     fastaFile = open(fastaFilePath, 'r')
 
@@ -37,7 +37,7 @@ def process_vdj_fasta(fastaFilePath, keptTranscriptsFile, outFile, sampleNumber)
             if VERBOSE:
                 print('process_vdj_fasta:', transcript)
             if transcript in transcriptList:
-                reconstructedLine = splitLine[0] + '-' + str(sampleNumber) + contig_number + '\n'
+                reconstructedLine = splitLine[0] + '-' + sampleLabel + contig_number + '\n'
                 outFile.write(reconstructedLine)
                 keep_transcript = True
         elif keep_transcript:
@@ -46,7 +46,7 @@ def process_vdj_fasta(fastaFilePath, keptTranscriptsFile, outFile, sampleNumber)
     
     fastaFile.close()
 
-def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sampleNumber):
+def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sampleLabel):
     transcriptsFile = open(keptTranscriptsFile, 'r')
     annotationFile = open(annotationFilePath, 'r')
 
@@ -62,7 +62,7 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
     for line in annotationFile:
         if first_row:
             first_row = False
-            if sampleNumber == 1:
+            if sampleLabel == 1:
                 outFile.write(line)
         else:
             splitLine = line.rstrip().split(',', 4)
@@ -83,21 +83,21 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
             if VERBOSE:
                 print('process_vdj_annotation:', transcript)
             if transcript in transcriptList:
-                reconstructedLine = transcript + '-' + str(sampleNumber) + ',' + is_cell + ',' + contig_id_transcript + '-' + str(sampleNumber) + ',' + high_confidence + ',' + remainder + '\n'
+                reconstructedLine = transcript + '-' + sampleLabel + ',' + is_cell + ',' + contig_id_transcript + '-' + sampleLabel + ',' + high_confidence + ',' + remainder + '\n'
                 if VERBOSE:
                     print('process_vdj_annotation:', reconstructedLine)
                 outFile.write(reconstructedLine)
 
     annotationFile.close()
 
-def process_vdj(inRefPaths, inFastaPaths, inAnnoPaths, outFastaPath, outputAnnotationPath):
+def process_vdj(inRefPaths, inFastaPaths, inAnnoPaths, outFastaPath, outputAnnotationPath, sampleLabels):
     outFastaFile = open(outFastaPath, 'w')
     outAnnotationFile = open(outputAnnotationPath, 'w')
 
-    numSamples = len(inRefPaths)
+    numSamples = len(sampleLabels)
     for i in range(numSamples):
-        process_vdj_fasta(inFastaPaths[i], inRefPaths[i], outFastaFile, i+1)
-        process_vdj_annotation(inAnnoPaths[i], inRefPaths[i], outAnnotationFile, i+1)
+        process_vdj_fasta(inFastaPaths[i], inRefPaths[i], outFastaFile, sampleLabels[i])
+        process_vdj_annotation(inAnnoPaths[i], inRefPaths[i], outAnnotationFile, sampleLabels[i])
     outFastaFile.close()
     outAnnotationFile.close()
 
@@ -106,6 +106,7 @@ def main():
     inputFastaFiles = []
     inputAnnotationFiles = []
     inputReferenceFiles = []
+    sampleLabels = []
     outputFastaFile = 'contigs.fasta'
     outputAnnotationFile = 'contigs_annotation.csv'
     inputsGiven = False
@@ -125,13 +126,11 @@ def main():
             inputConfigPath = arg
             inputConfigFile = open(inputConfigPath)
             for line in inputConfigFile:
-                splitLine = line.rstrip().split('->')
-                referencePath = splitLine[0]
-                inputReferenceFiles.append(referencePath)
-                paths = splitLine[1].split(',')
-
-                inputFastaFiles.append(paths[0])
-                inputAnnotationFiles.append(paths[1])
+                splitLine = line.rstrip().split(',')
+                sampleLabels.append(splitLine[0])
+                inputReferenceFiles.append(splitLine[1])
+                inputFastaFiles.append(splitLine[2])
+                inputAnnotationFiles.append(splitLine[3])
             inputConfigFile.close()
         elif opt == '-f':
             outputFastaFile = arg
@@ -147,7 +146,7 @@ def main():
         print(usage_prompt)
         print('ERROR: Not all required options were added')
         return
-    process_vdj(inputReferenceFiles, inputFastaFiles, inputAnnotationFiles, outputFastaFile, outputAnnotationFile)
+    process_vdj(inputReferenceFiles, inputFastaFiles, inputAnnotationFiles, outputFastaFile, outputAnnotationFile, sampleLabels)
 
 if __name__ == "__main__":
         main()
