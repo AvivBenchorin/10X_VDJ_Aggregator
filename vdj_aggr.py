@@ -70,7 +70,8 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
             is_cell = splitLine[1]
             
             contig_id = splitLine[2]
-            contig_id_split = re.split(r'-\d', contig_id)
+            contig_id_split = re.split(r'-\w+_contig_', contig_id)
+            print(contig_id_split)
             contig_id_transcript = contig_id_split[0]
             contig_id_contig_num = contig_id_split[1]
 
@@ -81,7 +82,7 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
             if VERBOSE:
                 print('process_vdj_annotation:', transcript)
             if transcript in transcriptList:
-                reconstructedLine = transcript + '-' + sampleLabel + ',' + is_cell + ',' + contig_id_transcript + '-' + sampleLabel + contig_id_contig_num + ',' + high_confidence + ',' + remainder + '\n'
+                reconstructedLine = transcript + '-' + sampleLabel + ',' + is_cell + ',' + contig_id_transcript + '-' + sampleLabel + '_contig_' +contig_id_contig_num + ',' + high_confidence + ',' + remainder + '\n'
                 if VERBOSE:
                     print('process_vdj_annotation:', reconstructedLine)
                 outFile.write(reconstructedLine)
