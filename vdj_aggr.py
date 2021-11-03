@@ -65,7 +65,7 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
             if sampleNumber == 1:
                 outFile.write(line)
         else:
-            splitLine = line.rstrip().split(',', maxsplit=4)
+            splitLine = line.rstrip().split(',', 4)
             
             transcript = splitLine[0].split('-')[0]
             
