@@ -68,7 +68,7 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
     
     annotationFile = open(annotationFilePath, 'r')
     first_row = True
-
+    contig_id_regex = re.compile(r'-\w+_contig_')
     for line in annotationFile:
         # Only write the header row to the outfile once, during the first sample file read
         if first_row:
@@ -79,13 +79,14 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
             # print('LINE: ', line)
             splitLine = line.rstrip().split(',', 4)
             
-            
-            transcript = splitLine[0].split('-')[0]
+            transcript_and_sample = splitLine[0].split('-')
+            transcript = transcript_and_sample[0]
+            original_sample = transcript_and_sample[1]
             
             is_cell = splitLine[1]
             
             contig_id = splitLine[2]
-            contig_id_split = re.split(r'-\w+_contig_', contig_id)
+            contig_id_split = contig_id_regex.split(contig_id)
             contig_id_transcript = contig_id_split[0]
             contig_id_contig_num = contig_id_split[1]
 
@@ -96,6 +97,8 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
             if VERBOSE:
                 print('process_vdj_annotation:', transcript)
             if transcript in transcriptList:
+                if sampleLabel == '':
+                    sampleLabel = original_sample
                 reconstructedLine = transcript + '-' + sampleLabel + ',' + is_cell + ',' + contig_id_transcript + '-' + sampleLabel + '_contig_' +contig_id_contig_num + ',' + high_confidence + ',' + remainder
                 if metadataDict != None:
                     metadataToAdd = ','.join(metadataDict[transcript])
