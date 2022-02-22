@@ -21,9 +21,9 @@ def process_vdj_fasta(fastaFilePath, keptTranscriptsFile, outFile, sampleLabel):
     transcriptsFile = open(keptTranscriptsFile, 'r')
     transcriptList = []
     for line in transcriptsFile:
-        transcriptList.append('>' + line.rstrip())
+        transcriptList.append('>' + line.rstrip().split(',')[0])
     if VERBOSE:
-        print('process_vdj_fasta:', transcriptList)
+        print('process_vdj_fasta, building transcript list:', transcriptList)
     transcriptsFile.close()
 
     fastaFile = open(fastaFilePath, 'r')
@@ -34,7 +34,7 @@ def process_vdj_fasta(fastaFilePath, keptTranscriptsFile, outFile, sampleLabel):
             transcript = splitLine[0]
             contig_number = splitLine[1]
             if VERBOSE:
-                print('process_vdj_fasta:', transcript)
+                print('process_vdj_fasta, found in fasta:', transcript)
             if transcript in transcriptList:
                 reconstructedLine = splitLine[0] + '-' + str(sampleLabel) + contig_number + '\n'
                 outFile.write(reconstructedLine)
@@ -75,11 +75,9 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
             if is_first_sample:
                 if metadataLabels != None:
                     line = ','.join([line.rstrip(), ','.join(metadataLabels)]) + '\n'
-                    print(line)
                 outFile.write(line)
             first_row = False
         else:
-            # print('LINE: ', line)
             splitLine = line.rstrip().split(',', 4)
             
             transcript_and_sample = splitLine[0].split('-')
