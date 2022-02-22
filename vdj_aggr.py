@@ -73,6 +73,9 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
         # Only write the header row to the outfile once, during the first sample file read
         if first_row:
             if is_first_sample:
+                if metadataLabels != None:
+                    line = ','.join([line.rstrip(), ','.join(metadataLabels)]) + '\n'
+                    print(line)
                 outFile.write(line)
             first_row = False
         else:
