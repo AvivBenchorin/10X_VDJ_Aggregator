@@ -17,17 +17,16 @@ options:
 VERBOSE = False
 
 def process_vdj_fasta(fastaFilePath, keptTranscriptsFile, outFile, sampleLabel):
+    # build list of transcripts to keep
     transcriptsFile = open(keptTranscriptsFile, 'r')
-    fastaFile = open(fastaFilePath, 'r')
-
     transcriptList = []
-    
     for line in transcriptsFile:
         transcriptList.append('>' + line.rstrip())
     if VERBOSE:
         print('process_vdj_fasta:', transcriptList)
     transcriptsFile.close()
 
+    fastaFile = open(fastaFilePath, 'r')
     keep_transcript = False
     for line in fastaFile:
         if '>' in line:
@@ -37,7 +36,7 @@ def process_vdj_fasta(fastaFilePath, keptTranscriptsFile, outFile, sampleLabel):
             if VERBOSE:
                 print('process_vdj_fasta:', transcript)
             if transcript in transcriptList:
-                reconstructedLine = splitLine[0] + '-' + sampleLabel + contig_number + '\n'
+                reconstructedLine = splitLine[0] + '-' + str(sampleLabel) + contig_number + '\n'
                 outFile.write(reconstructedLine)
                 keep_transcript = True
         elif keep_transcript:
@@ -46,19 +45,35 @@ def process_vdj_fasta(fastaFilePath, keptTranscriptsFile, outFile, sampleLabel):
     
     fastaFile.close()
 
-def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sampleLabel, is_first_sample):
+def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sampleLabel, is_first_sample, metadataLabels = None):
+    metadataDict = None
+    if metadataLabels != None:
+        metadataDict = dict()
+        
     transcriptsFile = open(keptTranscriptsFile, 'r')
-    annotationFile = open(annotationFilePath, 'r')
-
     transcriptList = []
-    
     for line in transcriptsFile:
-        transcriptList.append(line.rstrip())
+        if metadataDict == None:
+            assert len(line.rstrip().split(',')) == 1
+            transcriptList.append(line.rstrip())
+        else:
+            splitTranscriptLine = line.rstrip().split(',')
+            print('ERROR:', splitTranscriptLine)
+            transcript, metadataValueList = splitTranscriptLine[0], splitTranscriptLine[1:]
+            transcriptList.append(transcript)
+            assert len(metadataValueList) == len(metadataLabels)
+            metadataDict[transcript] = metadataValueList
     if VERBOSE:
         print('process_vdj_annotation:', transcriptList)
     transcriptsFile.close()
+    
+    annotationFile = open(annotationFilePath, 'r')
     first_row = True
+
+        
+            
     for line in annotationFile:
+        # Only write the header row to the outfile once, during the first sample file read
         if first_row:
             if is_first_sample:
                 outFile.write(line)
@@ -82,10 +97,15 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
             if VERBOSE:
                 print('process_vdj_annotation:', transcript)
             if transcript in transcriptList:
-                reconstructedLine = transcript + '-' + sampleLabel + ',' + is_cell + ',' + contig_id_transcript + '-' + sampleLabel + '_contig_' +contig_id_contig_num + ',' + high_confidence + ',' + remainder + '\n'
+                reconstructedLine = transcript + '-' + sampleLabel + ',' + is_cell + ',' + contig_id_transcript + '-' + sampleLabel + '_contig_' +contig_id_contig_num + ',' + high_confidence + ',' + remainder
+                if metadataDict != None:
+                    metadataToAdd = ','.join(metadataDict[transcript])
+                    if VERBOSE:
+                        print('process_vdj_annotation:', metadataToAdd)
+                    reconstructedLine = ','.join([reconstructedLine, metadataToAdd])
                 if VERBOSE:
                     print('process_vdj_annotation:', reconstructedLine)
-                outFile.write(reconstructedLine)
+                outFile.write(reconstructedLine + '\n')
 
     annotationFile.close()
 
@@ -106,7 +126,7 @@ def main():
     inputAnnotationFiles = []
     inputReferenceFiles = []
     sampleLabels = []
-    outputFastaFile = 'contigs.fasta'
+    outputFastaFile = None
     outputAnnotationFile = 'contigs_annotation.csv'
     inputsGiven = False
 
