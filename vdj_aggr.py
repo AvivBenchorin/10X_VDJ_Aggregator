@@ -1,4 +1,4 @@
-import re, sys, getopt
+import re, sys, getopt, argparse, os
 
 usage_prompt = """
 python vdj_aggr.py [-h] [-v] -i <input paths> -f <FASTA output> -a <annotation output>
@@ -58,7 +58,6 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
             transcriptList.append(line.rstrip())
         else:
             splitTranscriptLine = line.rstrip().split(',')
-            print('ERROR:', splitTranscriptLine)
             transcript, metadataValueList = splitTranscriptLine[0], splitTranscriptLine[1:]
             transcriptList.append(transcript)
             assert len(metadataValueList) == len(metadataLabels)
@@ -70,8 +69,6 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
     annotationFile = open(annotationFilePath, 'r')
     first_row = True
 
-        
-            
     for line in annotationFile:
         # Only write the header row to the outfile once, during the first sample file read
         if first_row:
@@ -79,7 +76,9 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
                 outFile.write(line)
             first_row = False
         else:
+            # print('LINE: ', line)
             splitLine = line.rstrip().split(',', 4)
+            
             
             transcript = splitLine[0].split('-')[0]
             
@@ -109,63 +108,96 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
 
     annotationFile.close()
 
-def process_vdj(inRefPaths, inFastaPaths, inAnnoPaths, outFastaPath, outputAnnotationPath, sampleLabels):
-    outFastaFile = open(outFastaPath, 'w')
-    outAnnotationFile = open(outputAnnotationPath, 'w')
-
+def process_vdj(inRefPaths, metadataList, inFastaPaths, inAnnoPaths, outFastaPath, outAnnotationPath, sampleLabels):
     numSamples = len(sampleLabels)
-    for i in range(numSamples):
-        process_vdj_fasta(inFastaPaths[i], inRefPaths[i], outFastaFile, sampleLabels[i])
-        process_vdj_annotation(inAnnoPaths[i], inRefPaths[i], outAnnotationFile, sampleLabels[i], i == 0)
-    outFastaFile.close()
-    outAnnotationFile.close()
+    if outAnnotationPath != None:
+        outAnnotationFile = open(outAnnotationPath, 'w')
+        for i in range(numSamples):
+            process_vdj_annotation(inAnnoPaths[i], inRefPaths[i], outAnnotationFile, sampleLabels[i], i == 0, metadataList)
+        outAnnotationFile.close()
+    if outFastaPath != None:
+        outFastaFile = open(outFastaPath, 'w')
+        for i in range(numSamples):
+            process_vdj_fasta(inFastaPaths[i], inRefPaths[i], outFastaFile, sampleLabels[i])
+        outFastaFile.close()
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config', help='CSV with the input paths and metadata label')
+    parser.add_argument('-a', '--annotation_output', help='path to write annotation CSV file to', default='contigs_annotation.csv')
+    parser.add_argument('-f', '--fasta_output', help='path to write contigs fasta file to', default='contigs.fasta')
+    parser.add_argument("-v", "--verbose", help="increase logging verbosity",
+                    action="store_true", default=False)
+    args = parser.parse_args()
     
-    inputFastaFiles = []
-    inputAnnotationFiles = []
-    inputReferenceFiles = []
-    sampleLabels = []
+    compareAnnotation = False
+    compareFasta = False
+    
+    metadataList = None
+    
+    inputAnnotationFiles = None
+    inputFastaFiles = None
+    
     outputFastaFile = None
-    outputAnnotationFile = 'contigs_annotation.csv'
-    inputsGiven = False
-
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "hi:f:a:v", ["help"])
-    except getopt.GetoptError as err:
-        print(usage_prompt)
-        print(str(err))
-        return
-    for opt, arg in opts:
-        if opt in ('-h', '--help'):
-            print(usage_prompt)
-            return
-        elif opt == '-i':
-            inputsGiven = True
-            inputConfigPath = arg
-            inputConfigFile = open(inputConfigPath)
-            for line in inputConfigFile:
+    outputAnnotationFile = None
+    
+    sampleLabels = []
+    inputReferenceFiles = []
+    
+    if os.path.exists(args.config):
+        with open(args.config) as configFile:
+            generalConfig = configFile.readline().rstrip().split(',')
+            compareAnnotation = bool(generalConfig[0])
+            compareFasta = bool(generalConfig[1])
+            
+            if not compareAnnotation and not compareFasta:
+                print('ERROR: must aggregate annotations, fastas, or both')
+                return
+            else:
+                if compareAnnotation:
+                    inputAnnotationFiles = []
+                if compareFasta:
+                    inputFastaFiles = []
+            
+            if len(generalConfig) > 2:
+                metadataList = generalConfig[2:]
+            
+            for line in configFile:
                 splitLine = line.rstrip().split(',')
+                numConfigs = len(splitLine)
+                
                 sampleLabels.append(splitLine[0])
                 inputReferenceFiles.append(splitLine[1])
-                inputFastaFiles.append(splitLine[2])
-                inputAnnotationFiles.append(splitLine[3])
-            inputConfigFile.close()
-        elif opt == '-f':
-            outputFastaFile = arg
-        elif opt == '-a':
-            outputAnnotationFile = arg
-        elif opt == '-v':
-           global VERBOSE
-           VERBOSE = True
-        else:
-            print(usage_prompt)
-            return
-    if inputsGiven == False:
-        print(usage_prompt)
-        print('ERROR: Not all required options were added')
+                if numConfigs == 3:
+                    if compareAnnotation and not compareFasta:
+                        inputAnnotationFiles.append(splitLine[2])
+                    elif compareFasta and not compareAnnotation:
+                        inputFastaFiles.append(splitLine[2])
+                    else:
+                        print('ERROR: three configuration values given, when four expected')
+                        return
+                elif numConfigs == 4:
+                    if compareAnnotation and compareFasta:
+                        inputAnnotationFiles.append(splitLine[2])
+                        inputFastaFiles.append(splitLine[3])
+                    else:
+                        print('ERROR: four configuration values given, when three expected')
+                        return
+                else:
+                    print('ERROR: incorrect number of configuration values given', numConfigs)
+                    return
+    else:
+        print('ERROR: the configuration file could not be found')
         return
-    process_vdj(inputReferenceFiles, inputFastaFiles, inputAnnotationFiles, outputFastaFile, outputAnnotationFile, sampleLabels)
+    if compareAnnotation:
+        outputAnnotationFile = args.annotation_output
+    if compareFasta:
+        outputFastaFile = args.fasta_output 
+    if args.verbose:
+        global VERBOSE
+        VERBOSE = True 
+
+    process_vdj(inputReferenceFiles, metadataList, inputFastaFiles, inputAnnotationFiles, outputFastaFile, outputAnnotationFile, sampleLabels)
 
 if __name__ == "__main__":
         main()
