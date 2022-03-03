@@ -13,15 +13,20 @@ def process_vdj_fasta(fastaFilePath, keptTranscriptsFile, outFile, sampleLabel):
 
     fastaFile = open(fastaFilePath, 'r')
     keep_transcript = False
+    contig_id_regex = re.compile(r'-(\d+)_')
     for line in fastaFile:
+        label_to_use = sampleLabel
         if '>' in line:
-            splitLine = re.split(r'-\d', line.rstrip())
+            splitLine = contig_id_regex.split(line.rstrip())
             transcript = splitLine[0]
-            contig_number = splitLine[1]
+            original_label = splitLine[1]
+            contig = splitLine[2]
             if VERBOSE:
                 print('process_vdj_fasta, found in fasta:', transcript)
             if transcript in transcriptList:
-                reconstructedLine = splitLine[0] + '-' + str(sampleLabel) + contig_number + '\n'
+                if label_to_use == '':
+                    label_to_use = original_label
+                reconstructedLine = splitLine[0] + '-' + str(label_to_use) + '_' + contig + '\n'
                 outFile.write(reconstructedLine)
                 keep_transcript = True
         elif keep_transcript:
@@ -55,6 +60,7 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
     first_row = True
     contig_id_regex = re.compile(r'-\w+_contig_')
     for line in annotationFile:
+        label_to_use = sampleLabel
         # Only write the header row to the outfile once, during the first sample file read
         if first_row:
             if is_first_sample:
@@ -83,9 +89,9 @@ def process_vdj_annotation(annotationFilePath, keptTranscriptsFile, outFile, sam
             if VERBOSE:
                 print('process_vdj_annotation:', transcript)
             if transcript in transcriptList:
-                if sampleLabel == '':
-                    sampleLabel = original_sample
-                reconstructedLine = transcript + '-' + sampleLabel + ',' + is_cell + ',' + contig_id_transcript + '-' + sampleLabel + '_contig_' +contig_id_contig_num + ',' + high_confidence + ',' + remainder
+                if label_to_use == '':
+                    label_to_use = original_sample
+                reconstructedLine = transcript + '-' + label_to_use + ',' + is_cell + ',' + contig_id_transcript + '-' + label_to_use + '_contig_' +contig_id_contig_num + ',' + high_confidence + ',' + remainder
                 if metadataDict != None:
                     metadataToAdd = ','.join(metadataDict[transcript])
                     if VERBOSE:
@@ -138,7 +144,6 @@ def main():
             generalConfig = configFile.readline().rstrip().split(',')
             compareAnnotation = generalConfig[0] == 'True'
             compareFasta = generalConfig[1] == 'True'
-            
             if not compareAnnotation and not compareFasta:
                 print('ERROR: must aggregate annotations, fastas, or both')
                 return
