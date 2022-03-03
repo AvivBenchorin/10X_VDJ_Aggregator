@@ -1,19 +1,4 @@
 import re, sys, getopt, argparse, os
-
-usage_prompt = """
-python vdj_aggr.py [-h] [-v] -i <input paths> -f <FASTA output> -a <annotation output>
-	    <input paths>
-                input paths file
-        <fasta output>
-                output FASTA file path
-        <annotation output>
-                output annotation CSV file path
-options:
-	-h, --help
-         	prints out the above usage statement
-    -v
-            verbose, prints out additional debugging statements during runtime
-"""
 VERBOSE = False
 
 def process_vdj_fasta(fastaFilePath, keptTranscriptsFile, outFile, sampleLabel):
@@ -151,8 +136,8 @@ def main():
     if os.path.exists(args.config):
         with open(args.config) as configFile:
             generalConfig = configFile.readline().rstrip().split(',')
-            compareAnnotation = bool(generalConfig[0])
-            compareFasta = bool(generalConfig[1])
+            compareAnnotation = generalConfig[0] == 'True'
+            compareFasta = generalConfig[1] == 'True'
             
             if not compareAnnotation and not compareFasta:
                 print('ERROR: must aggregate annotations, fastas, or both')
