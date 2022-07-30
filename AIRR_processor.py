@@ -1,14 +1,16 @@
 import re, sys, getopt, argparse, os
 VERBOSE = False
 
-
 def process_airr_tsv(AIRRFilePath,  outFilePath, metadataPath):
     metadataDict = {}
     metadataLabels = None
+    # Open the metadata file, compile a list of metadata labels to add, a list of transcripts to add metadata to,
+    # and a dictionary mapping each transcript to its metadata values.
     with open(metadataPath, 'r') as metadataFile:
         transcriptList = []
         first_line = True
         for line in metadataFile:
+            # first line of the metadata file contains the labels of metadata columns to add
             if first_line:
                 metadataLabels = line.rstrip().split(',')
                 first_line = False
@@ -16,8 +18,10 @@ def process_airr_tsv(AIRRFilePath,  outFilePath, metadataPath):
                 splitTranscriptLine = line.rstrip().split(',')
                 transcript, metadataValueList = splitTranscriptLine[0], splitTranscriptLine[1:]
                 transcriptList.append(transcript)
+                # each transcript must be assigned a value for each added metadata column
                 assert len(metadataValueList) == len(metadataLabels)
                 metadataDict[transcript] = metadataValueList
+        # at least one metadata column must be added
         assert metadataLabels != None
                   
         if VERBOSE:
@@ -26,6 +30,8 @@ def process_airr_tsv(AIRRFilePath,  outFilePath, metadataPath):
     AIRRFile = open(AIRRFilePath, 'r')
     outFile = open(outFilePath, 'w')
     first_row = True
+    # each sequence id has the format of <transcript>-<sample_id>_contig_<contig_num>, we want to extract
+    # the <transcript>
     contig_id_regex = re.compile(r'-\w+_contig_')
     for line in AIRRFile:
         # Only write the header row to the outFilePath once, during the first sample file read
@@ -35,16 +41,20 @@ def process_airr_tsv(AIRRFilePath,  outFilePath, metadataPath):
             first_row = False
         else:
             splitLine = line.rstrip().split('\t', 1)
-            
+            # first column of AIRR contains the sequence_id (contig_id)
             contig_id = splitLine[0]
             contig_id_split = contig_id_regex.split(contig_id)
             transcript = contig_id_split[0]
             contig_id_contig_num = contig_id_split[1]
             
+            # the rest of the columns
             remainder = splitLine[1]
 
             if VERBOSE:
                 print('process_AIRR_tsv:', transcript)
+            
+            # if the current cell's transcript is in the metadata file and was assigned metadata values, 
+            # add the metadata to the end of the line
             if transcript in transcriptList:
                 reconstructedLine = contig_id + '\t' + remainder
                 if metadataDict != None:
